@@ -71,7 +71,7 @@ export function gradeAnswer(phrase: Phrase, response: string, kind: ExerciseKind
   const answers = candidates.map(candidate => simplify(prepare(candidate)));
   if (!value) return { correct: false, error: 'unrecognized', normalized, feedback: 'Try an answer first. You can use a hint or reveal the model when you need support.' };
   if (answers.includes(normalized)) {
-    const feedback = kind === 'context' ? 'That works in this new situation.' : kind === 'listening' ? 'Your transcription matches the sentence.' : kind === 'comprehension' ? 'You understood the meaning.' : 'That expresses the idea correctly.';
+    const feedback = kind === 'context' ? 'That works in this new situation.' : kind === 'listening' ? 'Your transcription matches the sentence.' : kind === 'comprehension' ? 'You understood the meaning.' : kind === 'fluency' ? 'That familiar phrase came through.' : 'That expresses the idea correctly.';
     return { correct: true, error: 'none', normalized, feedback };
   }
   if (kind !== 'comprehension') {
@@ -143,11 +143,33 @@ export function duePhrases(state: AppState, units: Unit[], now = new Date()): Ph
   return allPhrases(units, state).filter(phrase => state.progress[phrase.id] && Date.parse(state.progress[phrase.id].due) <= now.getTime()).sort((a, b) => Date.parse(state.progress[a.id].due) - Date.parse(state.progress[b.id].due));
 }
 
+export function fluentPhrases(state: AppState, units: Unit[]): Phrase[] {
+  return allPhrases(units, state).filter(phrase => {
+    const stage = state.progress[phrase.id]?.stage;
+    return stage === 'independent' || stage === 'transfer';
+  });
+}
+
+// A visible sentence pace for familiar-language practice. It is not a score,
+// a deadline, or evidence of pronunciation.
+export function fluencyPaceSeconds(prompt: string): number {
+  const words = prompt.trim().split(/\s+/).filter(Boolean).length;
+  return Math.min(30, Math.max(8, Math.ceil(words * 1.6)));
+}
+
 function selectExercise(state: AppState, units: Unit[], now: Date): Exercise | null {
   const session = state.session;
   if (!session) return null;
   const all = allPhrases(units, state);
   let pool = session.unitId ? all.filter(phrase => phrase.unitId === session.unitId) : all;
+  if (session.mode === 'fluency') {
+    const familiar = pool.filter(phrase => ['independent', 'transfer'].includes(state.progress[phrase.id]?.stage ?? ''));
+    if (!familiar.length) return null;
+    const avoid = familiar.length > 1 ? session.practicedIds.slice(-Math.min(2, familiar.length - 1)) : [];
+    const available = familiar.filter(phrase => !avoid.includes(phrase.id));
+    const choices = (available.length ? available : familiar).sort((a, b) => Date.parse(state.progress[a.id].lastPracticed) - Date.parse(state.progress[b.id].lastPracticed));
+    return { phraseId: choices[0].id, kind: 'fluency', introduced: false, support: 'none', answered: false, response: '', retry: false };
+  }
   if (session.mode === 'review') pool = pool.filter(phrase => state.progress[phrase.id]);
   const introductions = new Set(state.attempts.filter(attempt => attempt.at >= session.startedAt && attempt.support === 'introduced').map(attempt => attempt.phraseId)).size;
   const allowNew = session.mode === 'lesson' || introductions < state.settings.newPerSession;
@@ -203,6 +225,10 @@ export function nextExercise(state: AppState, units: Unit[], now = new Date()): 
 
 function recordProgress(previous: PhraseProgress | undefined, phraseId: string, attempt: Attempt, settings: AppState['settings'], now: Date): PhraseProgress {
   const prior = previous ?? { phraseId, stage: 'introduced' as const, interval: 0, due: iso(now), lastPracticed: iso(now), independentCount: 0, lapses: 0, attempts: 0 };
+  if (attempt.kind === 'fluency') {
+    // Familiar-language repetition is activity, not new delayed-recall evidence.
+    return { ...prior, attempts: prior.attempts + 1, lastPracticed: iso(now) };
+  }
   const next = { ...prior, attempts: prior.attempts + 1, lastPracticed: iso(now) };
   const retrieval = attempt.kind === 'recall' || attempt.kind === 'context';
   const independent = attempt.correct && attempt.support === 'none' && retrieval;
@@ -246,7 +272,8 @@ export function submitAnswer(state: AppState, units: Unit[], response: string, n
     if (unit?.phrases.length && unit.phrases.every(item => attempts.some(record => record.phraseId === item.id && record.correct))) completedUnits.push(unit.id);
   }
   let feedback = grade.feedback;
-  if (grade.correct && exercise.support !== 'none') feedback += ' Supported practice recorded. You will recall it without the model later.';
+  if (exercise.kind === 'fluency') feedback += grade.correct ? ' Fluency practice recorded. Your spaced-review date stays the same.' : exercise.retry ? ' We will keep this familiar phrase available. Your review schedule stays the same.' : ' Continue for one supported retry. This does not change your review date.';
+  else if (grade.correct && exercise.support !== 'none') feedback += ' Supported practice recorded. You will recall it without the model later.';
   else if (grade.correct && (exercise.kind === 'recall' || exercise.kind === 'context') && progress[phrase.id].independentCount > (state.progress[phrase.id]?.independentCount ?? 0)) feedback += ` Independent recall recorded. Review in ${progress[phrase.id].interval} day${progress[phrase.id].interval === 1 ? '' : 's'}.`;
   else if (grade.correct) feedback += ' Practice recorded. Your next scheduled review stays the same.';
   else if (!exercise.retry) feedback += ' Continue for one supported retry.';
@@ -362,7 +389,7 @@ function array<T>(value: unknown, label: string, max: number, parse: (item: unkn
 }
 const stringList = (value: unknown, label: string, max = 50) => array(value, label, max, (item, name) => text(item, name));
 const supports = ['none', 'hint', 'revealed', 'introduced'] as const;
-const kinds = ['recall', 'listening', 'context', 'comprehension'] as const;
+const kinds = ['recall', 'listening', 'context', 'comprehension', 'fluency'] as const;
 
 function parseJson(input: string, maxBytes?: number): unknown {
   if (typeof input !== 'string') fail('the file must contain JSON text.');
@@ -402,7 +429,7 @@ function parseExercise(value: unknown, label: string): Exercise | null {
 }
 function parseSession(value: unknown, label: string): Session {
   const item = object(value, label, ['id', 'startedAt', 'updatedAt', 'mode', 'unitId', 'count', 'correct', 'supported', 'practicedIds', 'exercise', 'stoppedAt']);
-  const result: Session = { id: identifier(item.id, `${label}.id`), startedAt: date(item.startedAt, `${label}.startedAt`), updatedAt: date(item.updatedAt, `${label}.updatedAt`), mode: choice(item.mode, ['mixed', 'review', 'lesson', 'listening', 'conversation'], `${label}.mode`), count: number(item.count, `${label}.count`, 0, 1_000_000), correct: number(item.correct, `${label}.correct`, 0, 1_000_000), supported: number(item.supported, `${label}.supported`, 0, 1_000_000), practicedIds: array(item.practicedIds, `${label}.practicedIds`, 500, identifier), exercise: parseExercise(item.exercise, `${label}.exercise`) };
+  const result: Session = { id: identifier(item.id, `${label}.id`), startedAt: date(item.startedAt, `${label}.startedAt`), updatedAt: date(item.updatedAt, `${label}.updatedAt`), mode: choice(item.mode, ['mixed', 'review', 'lesson', 'listening', 'conversation', 'fluency'], `${label}.mode`), count: number(item.count, `${label}.count`, 0, 1_000_000), correct: number(item.correct, `${label}.correct`, 0, 1_000_000), supported: number(item.supported, `${label}.supported`, 0, 1_000_000), practicedIds: array(item.practicedIds, `${label}.practicedIds`, 500, identifier), exercise: parseExercise(item.exercise, `${label}.exercise`) };
   if (item.unitId !== undefined) result.unitId = identifier(item.unitId, `${label}.unitId`);
   if (item.stoppedAt !== undefined) result.stoppedAt = date(item.stoppedAt, `${label}.stoppedAt`);
   if (result.correct > result.count || result.supported > result.count) fail('session totals are inconsistent.');

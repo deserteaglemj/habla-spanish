@@ -34,6 +34,7 @@ These are implementation choices inspired by the evidence, not research findings
 6. Use browser speech output for model audio and optional browser dictation for text entry. Let the learner edit the transcript before checking. Speech recognition is not pronunciation assessment.
 7. Keep the course available for repeated training. A finite authored curriculum can support ongoing review and application, but must not be described as infinite new content.
 8. Encourage meaningful use outside the app. No study here establishes that one app can provide all the exposure, interaction, expertise, or feedback every learner needs.
+9. Offer a fluency pass over phrases already recalled independently or used in a changed context. Record the attempt, show a suggested pace, and leave the spaced-review date unchanged. The pace does not auto-submit, grade speed, or assess pronunciation.
 
 ## Mission-oriented language practice
 
