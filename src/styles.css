@@ -17,3 +17,30 @@
 .roleplay-setup select{margin-bottom:20px}
 
 button.back-link{border:0;background:none;padding:0;cursor:pointer;min-height:44px}
+
+.sidebar-extras{display:grid;gap:5px;margin:22px 0;padding:20px 0;border-top:1px solid var(--border)}
+.sidebar-extras a{display:flex;align-items:center;gap:12px;padding:8px 14px;font-size:13px;color:var(--muted);min-height:40px}
+.sidebar-extras a[aria-current=page]{color:var(--green);font-weight:700;background:var(--soft);border-radius:9px}
+.conversation-launch{display:flex;align-items:center;justify-content:space-between;gap:30px;padding:28px 0;border-bottom:1px solid var(--border);margin:12px 0 26px}
+.conversation-launch h2{font-size:25px;letter-spacing:-.7px;margin:8px 0}.conversation-launch p{max-width:480px;color:var(--muted);font-size:13px;line-height:1.7}.conversation-launch .button-row{max-width:350px;flex-wrap:wrap}
+.checkbox-label{display:flex!important;align-items:flex-start;gap:12px;font-size:13px!important;line-height:1.6;margin:18px 0!important}.checkbox-label input{width:18px!important;height:18px;flex-shrink:0;margin-top:2px}
+.setup-steps{list-style:none;counter-reset:setup;padding:0;margin:32px 0}.setup-steps li{counter-increment:setup;padding:20px 0 20px 48px;position:relative;border-top:1px solid var(--border)}.setup-steps li:before{content:counter(setup);position:absolute;left:0;top:20px;border:1px solid var(--border);border-radius:50%;width:28px;height:28px;text-align:center;line-height:28px}.setup-steps span{display:block;font-size:14px;color:var(--muted);line-height:1.7;margin-top:7px}
+.call-routing{margin-top:24px;grid-template-columns:1fr}.call-routing select{width:100%;margin-top:8px}.call-controls{margin-top:24px}.audio-level{height:9px;border-radius:10px;background:var(--soft);overflow:hidden;margin-top:25px;max-width:350px}.audio-level span{display:block;height:100%;background:var(--green);transition:width .15s}
+.conversation-line{padding:18px 22px;border-radius:12px;background:var(--soft);margin:14px 0;overflow-wrap:anywhere}.conversation-line.you{margin-left:8%;background:#f2eadb}.conversation-line strong{font-size:11px;text-transform:uppercase;letter-spacing:.8px}.conversation-line p{line-height:1.7;font-size:16px}.conversation-line .translation{font-weight:600;color:var(--green)}
+@media(max-width:900px){.conversation-launch{align-items:flex-start;flex-direction:column;gap:12px}.conversation-launch .button-row{max-width:none}}
+@media(max-width:650px){.conversation-launch h2{font-size:24px}.conversation-launch .button-row{gap:10px}.conversation-line{padding:16px}.conversation-line.you{margin-left:3%}}
+
+.coach-settings input,.coach-settings select,.coach-settings textarea,.coach-composer textarea{width:100%}.coach-settings label{margin-top:20px}.coach-settings details{margin-top:24px;border-top:1px solid var(--border);padding-top:20px}.coach-settings summary{cursor:pointer;font-size:14px;font-weight:600}.coach-transcript{max-height:650px;overflow:auto;overscroll-behavior:contain}.coach-transcript .dialogue-line p{white-space:pre-wrap;overflow-wrap:anywhere}.coach-composer textarea{min-height:110px}.coach-composer .button-row{flex-wrap:wrap}.coach-settings .section-line{flex-wrap:wrap;gap:15px}.coach-composer .micro{font-size:12px}.coach-transcript .dialogue-line>div{max-width:100%;min-width:0}
+
+.sidebar{overflow-y:auto}.sidebar>*{flex-shrink:0}
+@media(max-width:700px){
+  .sidebar{display:block;overflow:visible}
+  .sidebar nav{width:calc(100% - 64px)}
+  .mobile-menu{display:flex;position:absolute;right:0;bottom:0;align-items:center;justify-content:center;flex-direction:column;gap:5px;width:64px;height:70px;border:0;border-left:1px solid var(--border);background:transparent;font-size:9px;color:var(--muted)}
+  .mobile-menu[aria-expanded=true]{background:var(--soft);color:var(--green)}
+  .sidebar-extras{display:none;position:absolute;bottom:70px;left:0;right:0;margin:0;padding:12px 20px;background:var(--paper);border-top:1px solid var(--border);box-shadow:0 -12px 30px #233c3214}
+  .menu-open .sidebar-extras{display:grid;grid-template-columns:1fr}
+  .sidebar-extras a{min-height:48px}
+  .mission-history-row{align-items:flex-start;flex-direction:column;gap:4px}
+  .mission-history-row>span:last-child{display:block;margin-left:0;white-space:normal}
+}

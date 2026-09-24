@@ -1,3 +1,4 @@
+import { parseMissionSession } from './missions';
 import { parseRoleplaySession } from './roleplay';
 import type { AppState, Attempt, Exercise, ExerciseKind, Grade, Mode, Phrase, PhraseProgress, Session, Unit } from '../types';
 
@@ -277,7 +278,15 @@ export function activityAttempts(state: AppState): Attempt[] {
   const sessions = new Map((state.roleplayHistory || []).map(session => [session.id, session]));
   if (state.roleplay) sessions.set(state.roleplay.id, state.roleplay);
   const roleplay = [...sessions.values()].flatMap(session => session.attempts.map(attempt => ({ ...attempt, id: `roleplay:${session.id}:${attempt.id}`, phraseId: `roleplay:${session.unitId}:${attempt.turnIndex}`, kind: 'context' as const })));
-  return [...state.attempts, ...roleplay].sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+  const missions = new Map((state.missionHistory || []).map(session => [session.id, session]));
+  if (state.mission) missions.set(state.mission.id, state.mission);
+  const missionAttempts: Attempt[] = [...missions.values()].flatMap(session => session.attempts.map(attempt => ({
+    id: `mission:${session.id}:${attempt.phase}:${attempt.index}`, phraseId: `mission:${session.unitId}:${attempt.phase}:${attempt.index}`,
+    at: attempt.at, response: attempt.response, correct: attempt.correct,
+    support: attempt.support === 'model' ? 'revealed' : attempt.support === 'english' ? 'hint' : 'none',
+    kind: attempt.phase === 'adapt' ? 'context' : 'recall', error: attempt.correct ? 'none' : 'unrecognized',
+  })));
+  return [...state.attempts, ...roleplay, ...missionAttempts].sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
 }
 
 export function stats(state: AppState, now = new Date()) {
@@ -300,15 +309,15 @@ export function stats(state: AppState, now = new Date()) {
     return Math.round(milliseconds / 60_000);
   };
   const progress = Object.values(state.progress);
-  const isIndependent = (attempt: Attempt) => attempt.correct && attempt.support === 'none' && (attempt.kind === 'recall' || attempt.kind === 'context');
+  const isIndependent = (attempt: Attempt) => !attempt.id.startsWith('mission:') && attempt.correct && attempt.support === 'none' && (attempt.kind === 'recall' || attempt.kind === 'context');
   return {
-    totalAttempts: progress.reduce((total, item) => total + item.attempts, 0) + (state.roleplayAttemptCount ?? activity.filter(attempt => attempt.id.startsWith('roleplay:')).length),
+    totalAttempts: progress.reduce((total, item) => total + item.attempts, 0) + (state.roleplayAttemptCount ?? activity.filter(attempt => attempt.id.startsWith('roleplay:')).length) + (state.missionAttemptCount ?? activity.filter(attempt => attempt.id.startsWith('mission:')).length),
     todayAttempts: todayAttempts.length,
     todayCorrect: todayAttempts.filter(attempt => attempt.correct).length,
     todayIndependent: todayAttempts.filter(isIndependent).length,
     accuracy: activity.length ? Math.round(activity.filter(attempt => attempt.correct).length / activity.length * 100) : 0,
     streak, totalMinutes: elapsed(activity), todayMinutes: elapsed(todayAttempts),
-    totalSessions: state.history.filter(session => session.count > 0).length + (state.roleplayHistory || []).filter(session => session.attempts.length > 0).length,
+    totalSessions: state.history.filter(session => session.count > 0).length + (state.roleplayHistory || []).filter(session => session.attempts.length > 0).length + (state.missionHistory || []).filter(session => session.attempts.length > 0).length,
     phrasesPracticed: progress.length,
     introduced: progress.filter(item => item.stage === 'introduced').length,
     supported: progress.filter(item => item.stage === 'supported').length,
@@ -420,7 +429,7 @@ export function validateSessionReferences(state: AppState, units: Unit[]): strin
 }
 
 export function importBackup(input: string, units?: Unit[]): AppState {
-  const root = object(parseJson(input), 'backup', ['version', 'settings', 'progress', 'attempts', 'session', 'history', 'customPhrases', 'bookmarks', 'completedUnits', 'coachingNote', 'roleplay', 'roleplayHistory', 'roleplayAttemptCount']);
+  const root = object(parseJson(input), 'backup', ['version', 'settings', 'progress', 'attempts', 'session', 'history', 'customPhrases', 'bookmarks', 'completedUnits', 'coachingNote', 'roleplay', 'roleplayHistory', 'roleplayAttemptCount', 'mission', 'missionHistory', 'missionAttemptCount']);
   if (root.version !== 1) fail('unsupported backup version.');
   const settings = object(root.settings, 'settings', ['dailyMinutes', 'newPerSession', 'speechRate', 'voiceURI', 'sound', 'level', 'reviewIntervals']);
   const intervals = array(settings.reviewIntervals, 'reviewIntervals', 12, (item, label) => number(item, label, 1, 365));
@@ -440,6 +449,15 @@ export function importBackup(input: string, units?: Unit[]): AppState {
   if (new Set(state.attempts.map(attempt => attempt.id)).size !== state.attempts.length) fail('attempt identifiers must be unique.');
   if (new Set(state.history.map(session => session.id)).size !== state.history.length) fail('session identifiers must be unique.');
   if (root.coachingNote !== undefined) state.coachingNote = text(root.coachingNote, 'coachingNote');
+  if (root.mission !== undefined) state.mission = parseMissionSession(root.mission, units);
+  if (root.missionHistory !== undefined) {
+    state.missionHistory = array(root.missionHistory, 'missionHistory', 500, item => parseMissionSession(item, units));
+    if (new Set(state.missionHistory.map(item => item.id)).size !== state.missionHistory.length || state.missionHistory.some(item => !item.stoppedAt && !item.completedAt)) fail('mission history must contain unique stopped or completed sessions.');
+  }
+  if (root.missionAttemptCount !== undefined) state.missionAttemptCount = number(root.missionAttemptCount, 'missionAttemptCount', 0, Number.MAX_SAFE_INTEGER);
+  const retainedMissionAttempts = activityAttempts(state).filter(attempt => attempt.id.startsWith('mission:')).length;
+  if (state.missionAttemptCount === undefined && (state.mission || state.missionHistory)) state.missionAttemptCount = retainedMissionAttempts;
+  if (state.missionAttemptCount !== undefined && state.missionAttemptCount < retainedMissionAttempts) fail('mission attempt totals are inconsistent.');
   if (root.roleplay !== undefined) state.roleplay = parseRoleplaySession(root.roleplay, units);
   if (root.roleplayHistory !== undefined) {
     state.roleplayHistory = array(root.roleplayHistory, 'roleplayHistory', 500, item => parseRoleplaySession(item, units));

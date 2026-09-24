@@ -35,7 +35,11 @@ These are implementation choices inspired by the evidence, not research findings
 7. Keep the course available for repeated training. A finite authored curriculum can support ongoing review and application, but must not be described as infinite new content.
 8. Encourage meaningful use outside the app. No study here establishes that one app can provide all the exposure, interaction, expertise, or feedback every learner needs.
 
-## Architecture review before implementation
+## Mission-oriented language practice
+
+Mission practice added on 24 September 2026 follows the public CIA Intelligence Language Institute's emphasis on purposeful language use, cultural context, multiple language skills and tailored instruction. Historical CIA material describes immersion after foundations and experimental use of **FSI-developed** Programmatic Spanish. These are descriptive sources, not evidence that Habla reproduces CIA training or accelerates fluency. The implemented brief, prepare, rehearse, adapt and debrief flow records requested support and separates a voluntary real-world check-in from graded evidence. See [the source review and implementation limits](mission-method.md) for the three primary CIA sources, exact attribution and feature details.
+
+## Architecture review before implementation (original release)
 
 Reviewed approach: a public React, TypeScript, and Vite app on Vercel; no required account; authored Spanish curriculum; browser-local progress; validated JSON import/export; optional browser audio and dictation; a copy/paste learning handoff protocol.
 
