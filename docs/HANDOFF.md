@@ -23,6 +23,8 @@ AI conversation supports topic changes, level adaptation, editable spoken drafts
 
 The latest learner message has explicit precedence and appears last in the bounded model prompt. This was corrected after a real UI test stayed on an old cooking topic. Three real cooking-to-beach probes then followed the new topic despite old history, topic and memory.
 
+Fluency practice repeats phrases already recalled independently or used in transfer. It records activity, shows a suggested pace that does not auto-grade, and leaves spaced-review dates and independent counts unchanged. It is not a pronunciation or speaking-speed score.
+
 Call audio follows separate paths:
 
 - Physical mic -> English recognition -> Spanish translation -> BlackHole output -> calling app microphone.

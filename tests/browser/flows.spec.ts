@@ -65,6 +65,28 @@ test('a ChatGPT session imports once, preserves support and surfaces next step',
   expect(stored.attempts[0].support).toBe('revealed');
   expect(Object.values(stored.progress).every((p:any) => p.independentCount === 0)).toBe(true);
 });
+test('fluency practice repeats familiar Spanish without moving review evidence', async ({ page }) => {
+  const state = createInitialState();
+  const phrase = units[0].phrases[0];
+  const due = new Date('2026-10-08T12:00:00.000Z').toISOString();
+  state.progress[phrase.id] = { phraseId: phrase.id, stage: 'independent', interval: 7, due, lastPracticed: new Date('2026-09-20T12:00:00.000Z').toISOString(), independentCount: 2, lapses: 0, attempts: 4 };
+  await page.clock.install();
+  await page.addInitScript(({ key, data }) => localStorage.setItem(key, data), { key, data: JSON.stringify(state) });
+  await page.goto('/#today');
+  await page.getByRole('button', { name: 'Say it smoothly' }).click();
+  await expect(page.locator('.model-answer')).toHaveCount(0);
+  await expect(page.getByTestId('fluency-pace')).toContainText('Suggested pace:');
+  await expect(page.getByTestId('fluency-pace')).toContainText('does not check or grade');
+  await page.clock.fastForward(9_000);
+  await expect(page.getByRole('status').filter({ hasText: 'suggested pace has passed' })).toBeVisible();
+  await expect(page.getByTestId('feedback')).toHaveCount(0);
+  await page.getByLabel('Your answer').fill(phrase.spanish);
+  await page.getByRole('button', { name: 'Check answer' }).click();
+  await expect(page.getByTestId('feedback')).toContainText('spaced-review date stays the same');
+  const saved = await page.evaluate(storageKey => JSON.parse(localStorage.getItem(storageKey)!), key);
+  expect(saved.progress[phrase.id]).toMatchObject({ stage: 'independent', interval: 7, due, independentCount: 2, lapses: 0, attempts: 5 });
+  expect(saved.attempts.at(-1)).toMatchObject({ kind: 'fluency', correct: true, support: 'none' });
+});
 test('course details include dialogues, reading, comprehension and specific unit practice', async ({ page }) => {
   await page.goto(`/#course/${units[0].id}`);
   await expect(page.getByRole('heading',{name:'A real-life exchange'})).toBeVisible();
