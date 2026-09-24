@@ -2,6 +2,8 @@
 
 A public, account-free space for everyday Latin American Spanish practice.
 
+**[Open Habla](https://habla-spanish-nu.vercel.app)**
+
 ## What you can do
 
 - Follow 24 guided units across A1, A2 and B1 course material, with 144 phrases and changed-context exercises.

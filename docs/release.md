@@ -15,7 +15,15 @@ Create a new independent public source repository and deploy the Spanish practic
 - Public source scan found no personal identifiers, local machine paths or secret fields.
 
 ## Publication
-GitHub repository created and Vercel project linked to it. Production URL and anonymous verification will be recorded after deployment finishes.
+- Public app: https://habla-spanish-nu.vercel.app
+- GitHub source: https://github.com/deserteaglemj/habla-spanish
+- Verified application commit: `53a690ce0839f8d711b4a1c9f3d3c4c327beaa91`.
+- First verified production deployment: `dpl_Cr6y5HGbfiQBrdF1Fo4G9bebyxxH`, status Ready.
+- Anonymous request returned HTTP 200, without an account, cookie or access token.
+- All 19 browser checks passed against the public production URL, including 14 user-flow/layout checks and five simulated audio lifecycle checks.
+- GitHub Actions passed the clean install, 62 unit tests, production build and all 19 browser tests: https://github.com/deserteaglemj/habla-spanish/actions/runs/35951022164
+- Verified on 24 September 2026 UTC. Documentation-only follow-ups preserve the verified application code.
+- Vercel is connected to the repository; pushes to main trigger production builds. No paid AI service, database or account setup is required to use the app.
 
 ## Rollback
 Use Vercel deployment rollback to select a previously verified production deployment. Keep the local progress schema backward compatible. Git changes are checkpointed; revert a specific source commit for a source rollback. No source deletion or machine folder moves are part of this release. Learners can download progress backups before restoring or changing browsers.
