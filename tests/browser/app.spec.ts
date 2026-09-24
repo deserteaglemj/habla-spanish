@@ -1,0 +1,33 @@
+import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+test('a new learner can practice, stop, resume and retain progress', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'A little practice. A world of conversation.' })).toBeVisible();
+  await page.getByRole('button', { name: 'Start my practice' }).click();
+  await expect(page.getByLabel('Your answer')).toBeVisible();
+  await page.getByLabel('Your answer').fill('a completely wrong answer');
+  await page.getByRole('button', { name: 'Check answer' }).click();
+  await expect(page.getByTestId('feedback')).toBeVisible();
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await page.getByRole('button', { name: 'End session' }).click();
+  await expect(page.getByRole('heading', { name: 'Practice saved.' })).toBeVisible();
+  await page.getByRole('button', { name: 'Back to today' }).click();
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Start my practice' })).toBeVisible();
+  await page.getByRole('link', { name: 'My progress', exact: true }).click();
+  await expect(page.getByText('1', { exact: true }).first()).toBeVisible();
+});
+test('course, phrasebook and preferences are accessible on mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/#course');
+  await expect(page.getByRole('heading', { name: 'Your path to Spanish.' })).toBeVisible();
+  await expect(page.locator('body')).not.toHaveJSProperty('scrollWidth', 5000);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.goto('/#phrasebook');
+  await page.getByLabel('Search phrases').fill('Buenos días');
+  await expect(page.locator('.phrase-card h2').filter({ hasText: /Buenos días/i }).first()).toBeVisible();
+  await page.goto('/#settings');
+  await expect(page.getByRole('heading', { name: 'Make it yours.' })).toBeVisible();
+  const violations = (await new AxeBuilder({ page }).analyze()).violations;
+  expect(violations).toEqual([]);
+});

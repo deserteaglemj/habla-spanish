@@ -1,3 +1,4 @@
+import type { RoleplaySession } from './lib/roleplay';
 export type Level = 'A1' | 'A2' | 'B1';
 export type Stage = 'introduced' | 'supported' | 'independent' | 'transfer';
 export type Mode = 'mixed' | 'review' | 'lesson' | 'listening' | 'conversation';
@@ -9,5 +10,5 @@ export interface PhraseProgress { phraseId: string; stage: Stage; interval: numb
 export interface Exercise { phraseId: string; kind: ExerciseKind; introduced: boolean; support: Attempt['support']; answered: boolean; response: string; correct?: boolean; feedback?: string; retry: boolean; }
 export interface Session { id: string; startedAt: string; updatedAt: string; mode: Mode; unitId?: string; count: number; correct: number; supported: number; practicedIds: string[]; exercise: Exercise | null; stoppedAt?: string; }
 export interface Settings { dailyMinutes: number; newPerSession: number; speechRate: number; voiceURI: string; sound: boolean; level: Level; reviewIntervals: number[]; }
-export interface AppState { version: 1; settings: Settings; progress: Record<string,PhraseProgress>; attempts: Attempt[]; session: Session | null; history: Session[]; customPhrases: Phrase[]; bookmarks: string[]; completedUnits: string[]; }
+export interface AppState { version: 1; settings: Settings; progress: Record<string,PhraseProgress>; attempts: Attempt[]; session: Session | null; history: Session[]; customPhrases: Phrase[]; bookmarks: string[]; completedUnits: string[]; coachingNote?: string; roleplay?: RoleplaySession; roleplayHistory?: RoleplaySession[]; roleplayAttemptCount?: number; }
 export interface Grade { correct: boolean; feedback: string; error: Attempt['error']; normalized: string; }
